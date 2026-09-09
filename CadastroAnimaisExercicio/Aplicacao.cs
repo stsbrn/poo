@@ -1,9 +1,13 @@
 using CadastroAnimaisExercicio.Entidades;
+using System;
+using System.Collections.Generic;
 
 namespace CadastroAnimaisExercicio;
 
 public class Aplicacao
 {
+    private readonly List<Animal> animais = new List<Animal>();
+
     public void Executar()
     {
         while (true)
@@ -55,31 +59,81 @@ public class Aplicacao
 
     private void CadastrarAnimal()
     {
-        var animal = new Animal();
-        animal.Nome = LerTexto("Nome: ");
-        animal.Idade = LerInteiro("Idade: ");
-        animal.Especie = LerTexto("Espécie: ");
+        var nome = LerTexto("Digite o nome do animal: ");
+        var idade = LerInteiro("Digite a idade do animal: ");
+        string especie = LerTexto("Digite a espécie do animal: ");
+        if (idade < 0)
+        {
+            Console.WriteLine("Idade inválida. O animal não pode ser cadastrado.");
+            return;
+        }
+
+        var tutorNome = LerTexto("Digite o nome do tutor/responsável: ");
+        var tutorTelefone = LerTexto("Digite o telefone do tutor/responsável: ");
+        var tutor = new Tutor(tutorNome, tutorTelefone);
+
+        var animal = new Animal(nome, especie, idade, tutor);
+        animais.Add(animal);
+        Console.WriteLine("Animal cadastrado com sucesso.");
         animal.ExibirDados();
     }
 
-    private static void ListarAnimais()
+    private void ListarAnimais()
     {
-        // TODO: implementar a opção 2.
+        if (animais.Count == 0)
+        {
+            Console.WriteLine("Nenhum animal cadastrado.");
+            return;
+        }
+
+        foreach (var animal in animais)
+        {
+            animal.ExibirDados();
+        }
     }
 
-    private static void BuscarAnimal()
+    private void BuscarAnimal()
     {
-        // TODO: implementar a opção 3.
+        var nome = LerTexto("Digite o nome do animal a buscar: ");
+        var achado = animais.Find(a => a.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
+
+        if (achado == null)
+        {
+            Console.WriteLine("Animal não encontrado.");
+            return;
+        }
+
+        achado.ExibirDados();
     }
 
-    private static void AlterarIdade()
+    private void AlterarIdade()
     {
-        // TODO: implementar a opção 4.
+        var nome = LerTexto("Digite o nome do animal cuja idade deseja alterar: ");
+        var achado = animais.Find(a => a.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
+
+        if (achado == null)
+        {
+            Console.WriteLine("Animal não encontrado.");
+            return;
+        }
+
+        var novaIdade = LerInteiro("Digite a nova idade: ");
+        achado.AlterarIdade(novaIdade);
+        achado.ExibirDados();
     }
 
-    private static void FazerAnimalEmitirSom()
+    private void FazerAnimalEmitirSom()
     {
-        // TODO: implementar a opção 5.
+        var nome = LerTexto("Digite o nome do animal que deve emitir som: ");
+        var achado = animais.Find(a => a.Nome.Contains(nome, StringComparison.OrdinalIgnoreCase));
+
+        if (achado == null)
+        {
+            Console.WriteLine("Animal não encontrado.");
+            return;
+        }
+
+        achado.EmitirSom();
     }
 
     private static string LerTexto(string mensagem)
