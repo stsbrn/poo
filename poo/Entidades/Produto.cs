@@ -2,47 +2,60 @@ namespace PooPedidos.Entidades;
 
 public class Produto
 {
-    public Produto(int id, string nome, decimal preco, string descricao, int quantidade)
-    {
-        Id = id;
-        Nome = nome;
-        Preco = preco;
-        Descricao = descricao;
-        Quantidade = quantidade;
-    }
+   
     public int Id { get; set; }
     public string Nome { get; set; } = string.Empty;
-    private decimal Preco { get; set; }
+    private decimal _preco;
     public string Descricao { get; set; } = string.Empty;
-    private int Quantidade { get; set; }
+    private int _quantidade;
+
+    public Produto(int id, string nome, decimal preco, string descricao, int quantidade)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+            throw new ArgumentException(Mensagens.ProdutoNomeVazio, nameof(nome));
+        if (preco < 0)
+            throw new ArgumentException(Mensagens.PrecoNegativo, nameof(preco));
+        if (quantidade < 0)
+            throw new ArgumentException(Mensagens.EstoqueNegativo, nameof(quantidade));
+
+        Id = id;
+        Nome = nome;
+        _preco = preco;
+        Descricao = descricao ?? string.Empty;
+        _quantidade = quantidade;
+    }
     public override string ToString() =>
         $"Produto #{Id}: {Nome}\n" +
-        $"  Preço: R$ {Preco:F2}\n" +
-        $"  Quantidade: {Quantidade}\n" +
+        $"  Preço: R$ {_preco:F2}\n" +
+        $"  Quantidade: {_quantidade}\n" +
         $"  Descrição: {Descricao}";
 
 
     public decimal ObterPreco()
     {
-        return Preco;
+        return _preco;
     }
 
     public void AlterarPreco(decimal preco)
     {
-        Preco = preco;
+        if (preco < 0) throw new ArgumentException(Mensagens.PrecoNaoPodeSerNegativo, nameof(preco));
+        _preco = preco;
     }
 
     public int ObterEstoque()
     {
-        return Quantidade;
+        return _quantidade;
     }
     public void AdicionarEstoque(int quantidade)
     {
-        Quantidade += quantidade;
+        if (quantidade <= 0) throw new ArgumentException(Mensagens.QuantidadeAdicionarPositiva, nameof(quantidade));
+        _quantidade += quantidade;
     }
 
     public void RemoverEstoque(int quantidade)
     {
-        Quantidade -= quantidade;
+        if (quantidade <= 0) throw new ArgumentException(Mensagens.QuantidadeRemoverPositiva, nameof(quantidade));
+        if (quantidade > _quantidade) throw new ArgumentException(Mensagens.RemoverMaisQueEstoque, nameof(quantidade));
+        _quantidade -= quantidade;
     }
 }

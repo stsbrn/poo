@@ -5,9 +5,9 @@ namespace PooPedidos;
 
 public class Aplicacao
 {
-    private readonly List<Cliente> _clientes = [];
-    private readonly List<Produto> _produtos = [];
-    private readonly List<Pedido> _pedidos = [];
+    private readonly List<Cliente> _clientes = new List<Cliente>();
+    private readonly List<Produto> _produtos = new List<Produto>();
+    private readonly List<Pedido> _pedidos = new List<Pedido>();
 
     private int _proximoClienteId = 1;
     private int _proximoProdutoId = 1;
@@ -30,7 +30,7 @@ public class Aplicacao
                 case 2: MenuProdutos(); break;
                 case 3: MenuPedidos(); break;
                 case 0: return;
-                default: Mensagem("Opção inválida."); break;
+            default: Mensagem(Mensagens.OpcaoInvalida); break;
             }
         }
     }
@@ -53,7 +53,7 @@ public class Aplicacao
                 case 3: AlterarCliente(); break;
                 case 4: ExcluirCliente(); break;
                 case 0: return;
-                default: Mensagem("Opção inválida."); break;
+            default: Mensagem(Mensagens.OpcaoInvalida); break;
             }
         }
     }
@@ -61,15 +61,24 @@ public class Aplicacao
     private void CadastrarCliente()
     {
         ExibirTitulo("NOVO CLIENTE");
-        var cliente = new Cliente(
-            _proximoClienteId++,
-            LerTexto("Nome: "),
-            LerTexto("E-mail: ", ""),
-            LerTexto("Telefone: "),
-            LerTexto("Endereço: ", "")
-        );
-        _clientes.Add(cliente);
-        Mensagem("Cliente cadastrado.");
+        var id = _proximoClienteId;
+        try
+        {
+            var cliente = new Cliente(
+                id,
+                LerTexto("Nome: "),
+                LerTexto("E-mail: ", ""),
+                LerTexto("Telefone: "),
+                LerTexto("Endereço: ", "")
+            );
+            _clientes.Add(cliente);
+            _proximoClienteId++;
+        Mensagem(Mensagens.ClienteCadastrado);
+        }
+        catch (ArgumentException ex)
+        {
+            Mensagem(ex.Message);
+        }
     }
 
     private void AlterarCliente()
@@ -77,13 +86,40 @@ public class Aplicacao
         ExibirTitulo("ALTERAR CLIENTE");
         ListarClientes();
         var cliente = BuscarCliente(LerInteiro("Id: "));
-        if (cliente is null) { Mensagem("Cliente não encontrado."); return; }
+        if (cliente is null) { Mensagem(Mensagens.ClienteNaoEncontrado); return; }
 
-        cliente.Nome = LerTexto($"Nome ({cliente.Nome}): ", cliente.Nome);
-        cliente.Email = LerTexto($"E-mail ({cliente.Email}): ", cliente.Email);
-        cliente.Telefone = LerTexto($"Telefone ({cliente.Telefone}): ", cliente.Telefone);
+        try
+        {
+            cliente.AlterarNome(LerTexto($"Nome ({cliente.Nome}): ", cliente.Nome));
+        }
+        catch (ArgumentException ex)
+        {
+            Mensagem(ex.Message);
+            return;
+        }
+
+        try
+        {
+            cliente.AlterarEmail(LerTexto($"E-mail ({cliente.Email}): ", cliente.Email));
+        }
+        catch (ArgumentException ex)
+        {
+            Mensagem(ex.Message);
+            return;
+        }
+
+        try
+        {
+            cliente.AlterarTelefone(LerTexto($"Telefone ({cliente.Telefone}): ", cliente.Telefone));
+        }
+        catch (ArgumentException ex)
+        {
+            Mensagem(ex.Message);
+            return;
+        }
+
         cliente.Endereco = LerTexto($"Endereço ({cliente.Endereco}): ", cliente.Endereco);
-        Mensagem("Cliente alterado.");
+        Mensagem(Mensagens.ClienteAlterado);
     }
 
     private void ExcluirCliente()
@@ -91,15 +127,15 @@ public class Aplicacao
         ExibirTitulo("EXCLUIR CLIENTE");
         ListarClientes();
         var cliente = BuscarCliente(LerInteiro("Id: "));
-        if (cliente is null) { Mensagem("Cliente não encontrado."); return; }
+        if (cliente is null) { Mensagem(Mensagens.ClienteNaoEncontrado); return; }
         if (_pedidos.Any(p => p.Cliente.Id == cliente.Id))
         {
-            Mensagem("O cliente possui pedidos e não pode ser excluído.");
+            Mensagem(Mensagens.ClientePossuiPedidos);
             return;
         }
 
         _clientes.Remove(cliente);
-        Mensagem("Cliente excluído.");
+        Mensagem(Mensagens.ClienteExcluido);
     }
 
     private void ListarClientes(bool pausar = false)
@@ -128,7 +164,7 @@ public class Aplicacao
                 case 3: AlterarProduto(); break;
                 case 4: ExcluirProduto(); break;
                 case 0: return;
-                default: Mensagem("Opção inválida."); break;
+                default: Mensagem(Mensagens.OpcaoInvalida); break;
             }
         }
     }
@@ -141,9 +177,9 @@ public class Aplicacao
             LerTexto("Nome: "),
             LerDecimal("Preço: "),
             LerTexto("Descrição: "),
-            LerInteiro("Quantidade: ")
+            LerInteiro("Quantidade: ", minimo: 0)
         ));
-        Mensagem("Produto cadastrado.");
+        Mensagem(Mensagens.ProdutoCadastrado);
     }
 
     private void AlterarProduto()
@@ -151,11 +187,16 @@ public class Aplicacao
         ExibirTitulo("ALTERAR PRODUTO");
         ListarProdutos();
         var produto = BuscarProduto(LerInteiro("Id: "));
-        if (produto is null) { Mensagem("Produto não encontrado."); return; }
+        if (produto is null) { Mensagem(Mensagens.ProdutoNaoEncontrado); return; }
 
         produto.Nome = LerTexto($"Nome ({produto.Nome}): ", produto.Nome);
         produto.AlterarPreco(LerDecimal($"Preço ({produto.ObterPreco:C}): ", produto.ObterPreco()));
-        Mensagem("Produto alterado.");
+        produto.Descricao = LerTexto($"Descrição ({produto.Descricao}): ", produto.Descricao);
+        var novoEstoque = LerInteiro($"Quantidade ({produto.ObterEstoque()}): ", produto.ObterEstoque(), minimo: 0);
+        var atual = produto.ObterEstoque();
+        if (novoEstoque > atual) produto.AdicionarEstoque(novoEstoque - atual);
+        else if (novoEstoque < atual) produto.RemoverEstoque(atual - novoEstoque);
+        Mensagem(Mensagens.ProdutoAlterado);
     }
 
     private void ExcluirProduto()
@@ -163,15 +204,15 @@ public class Aplicacao
         ExibirTitulo("EXCLUIR PRODUTO");
         ListarProdutos();
         var produto = BuscarProduto(LerInteiro("Id: "));
-        if (produto is null) { Mensagem("Produto não encontrado."); return; }
+        if (produto is null) { Mensagem(Mensagens.ProdutoNaoEncontrado); return; }
         if (_pedidos.SelectMany(p => p.Itens).Any(i => i.Produto.Id == produto.Id))
         {
-            Mensagem("O produto pertence a um pedido e não pode ser excluído.");
+            Mensagem(Mensagens.ProdutoPertencePedido);
             return;
         }
 
         _produtos.Remove(produto);
-        Mensagem("Produto excluído.");
+        Mensagem(Mensagens.ProdutoExcluido);
     }
 
     private void ListarProdutos(bool pausar = false)
@@ -202,7 +243,7 @@ public class Aplicacao
                 case 4: AlterarPedido(); break;
                 case 5: ExcluirPedido(); break;
                 case 0: return;
-                default: Mensagem("Opção inválida."); break;
+                default: Mensagem(Mensagens.OpcaoInvalida); break;
             }
         }
     }
@@ -212,13 +253,13 @@ public class Aplicacao
         ExibirTitulo("NOVO PEDIDO");
         if (_clientes.Count == 0 || _produtos.Count == 0)
         {
-            Mensagem("Cadastre pelo menos um cliente e um produto primeiro.");
+            Mensagem(Mensagens.CadastreClienteProduto);
             return;
         }
 
         ListarClientes();
         var cliente = BuscarCliente(LerInteiro("Id do cliente: "));
-        if (cliente is null) { Mensagem("Cliente não encontrado."); return; }
+        if (cliente is null) { Mensagem(Mensagens.ClienteNaoEncontrado); return; }
 
         var pedido = new Pedido(
             _proximoPedidoId++,
@@ -229,7 +270,7 @@ public class Aplicacao
         EditarItens(pedido);
         if (pedido.Itens.Count == 0)
         {
-            Mensagem("O pedido foi cancelado porque não possui itens.");
+            Mensagem(Mensagens.PedidoCanceladoSemItens);
             return;
         }
         pedido.Observacao = LerTexto("Observação (opcional): ", "");
@@ -242,7 +283,7 @@ public class Aplicacao
         ExibirTitulo("ALTERAR PEDIDO");
         ListarPedidos();
         var pedido = BuscarPedido(LerInteiro("Id: "));
-        if (pedido is null) { Mensagem("Pedido não encontrado."); return; }
+        if (pedido is null) { Mensagem(Mensagens.PedidoNaoEncontrado); return; }
 
         pedido.Data = LerData($"Data ({pedido.Data:dd/MM/yyyy}): ", pedido.Data);
         ListarClientes();
@@ -252,7 +293,8 @@ public class Aplicacao
         else Console.WriteLine("Cliente inválido; o cliente atual foi mantido.");
 
         EditarItens(pedido);
-        Mensagem("Pedido alterado.");
+        pedido.Observacao = LerTexto($"Observação ({pedido.Observacao}): ", pedido.Observacao);
+        Mensagem(Mensagens.PedidoAlterado);
     }
 
     private void EditarItens(Pedido pedido)
@@ -273,7 +315,7 @@ public class Aplicacao
                 case 2: AlterarItem(pedido); break;
                 case 3: RemoverItem(pedido); break;
                 case 0: return;
-                default: Mensagem("Opção inválida."); break;
+                default: Mensagem(Mensagens.OpcaoInvalida); break;
             }
         }
     }
@@ -282,41 +324,58 @@ public class Aplicacao
     {
         ListarProdutos();
         var produto = BuscarProduto(LerInteiro("Id do produto: "));
-        if (produto is null) { Mensagem("Produto não encontrado."); return; }
-
-        var itemExistente = pedido.Itens.FirstOrDefault(i => i.Produto.Id == produto.Id);
+        if (produto is null) { Mensagem(Mensagens.ProdutoNaoEncontrado); return; }
         var qtd = LerInteiro("Quantidade: ", minimo: 1);
         if (qtd > produto.ObterEstoque())
         {
-            Mensagem("Estoque indisponivel");
+            Mensagem(Mensagens.EstoqueIndisponivel);
+            return;
         }
-        if (itemExistente is not null)
+        try
         {
-            itemExistente.Qtd += qtd;
+            pedido.AdicionarItem(produto, qtd);
         }
-        else
+        catch (ArgumentException ex)
         {
-            pedido.Itens.Add(new ItemPedido(produto, qtd, produto.ObterPreco()));
+            Mensagem(ex.Message);
         }
     }
  
 
     private static void AlterarItem(Pedido pedido)
     {
-        if (pedido.Itens.Count == 0) { Mensagem("O pedido não possui itens."); return; }
+        if (pedido.Itens.Count == 0) { Mensagem(Mensagens.PedidoSemItens); return; }
         ExibirItens(pedido, numerar: true);
-        var posicao = LerInteiro("Número do item: ", minimo: 1);
-        if (posicao > pedido.Itens.Count) { Mensagem("Item inválido."); return; }
-        pedido.Itens[posicao - 1].Qtd = LerInteiro("Nova quantidade: ", minimo: 1);
+        var produtoId = LerInteiro("Id do produto: ", minimo: 1);
+        var produto = pedido.Itens.FirstOrDefault(i => i.Produto.Id == produtoId)?.Produto;
+        if (produto is null) { Mensagem(Mensagens.ItemInvalido); return; }
+
+        var novaQtd = LerInteiro("Nova quantidade: ", minimo: 1);
+        if (novaQtd > produto.ObterEstoque()) { Mensagem(Mensagens.EstoqueIndisponivel); return; }
+
+        try
+        {
+            pedido.AlterarQuantidade(produtoId, novaQtd);
+        }
+        catch (ArgumentException ex)
+        {
+            Mensagem(ex.Message);
+        }
     }
 
     private static void RemoverItem(Pedido pedido)
     {
-        if (pedido.Itens.Count == 0) { Mensagem("O pedido não possui itens."); return; }
+        if (pedido.Itens.Count == 0) { Mensagem(Mensagens.PedidoSemItens); return; }
         ExibirItens(pedido, numerar: true);
-        var posicao = LerInteiro("Número do item: ", minimo: 1);
-        if (posicao > pedido.Itens.Count) { Mensagem("Item inválido."); return; }
-        pedido.Itens.RemoveAt(posicao - 1);
+        var produtoId = LerInteiro("Id do produto: ", minimo: 1);
+        try
+        {
+            pedido.RemoverItem(produtoId);
+        }
+        catch (ArgumentException ex)
+        {
+            Mensagem(ex.Message);
+        }
     }
 
     private void ConsultarPedido()
@@ -324,11 +383,12 @@ public class Aplicacao
         ExibirTitulo("DETALHES DO PEDIDO");
         ListarPedidos();
         var pedido = BuscarPedido(LerInteiro("Id: "));
-        if (pedido is null) { Mensagem("Pedido não encontrado."); return; }
+        if (pedido is null) { Mensagem(Mensagens.PedidoNaoEncontrado); return; }
 
         Console.WriteLine($"\nPedido: {pedido.Id}");
         Console.WriteLine($"Data: {pedido.Data:dd/MM/yyyy}");
         Console.WriteLine($"Cliente: {pedido.Cliente.Nome}");
+        Console.WriteLine($"Observação: {pedido.Observacao}");
         ExibirItens(pedido);
         Console.WriteLine($"TOTAL DO PEDIDO: {pedido.ValorTotal:C}");
         Pausar();
@@ -339,9 +399,9 @@ public class Aplicacao
         ExibirTitulo("EXCLUIR PEDIDO");
         ListarPedidos();
         var pedido = BuscarPedido(LerInteiro("Id: "));
-        if (pedido is null) { Mensagem("Pedido não encontrado."); return; }
+        if (pedido is null) { Mensagem(Mensagens.PedidoNaoEncontrado); return; }
         _pedidos.Remove(pedido);
-        Mensagem("Pedido excluído.");
+        Mensagem(Mensagens.PedidoExcluido);
     }
 
     private void ListarPedidos(bool pausar = false)
